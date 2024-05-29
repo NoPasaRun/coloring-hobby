@@ -1,0 +1,5 @@
+numpy~=1.26.2
+PyAudio~=0.2.14
+scipy~=1.11.4
+soundfile~=0.12.1
+pygame~=2.5.2
