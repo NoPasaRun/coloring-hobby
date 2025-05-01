@@ -84,7 +84,7 @@ class App:
         level_frame.activate()
         level_frame.centre()
         level_frame.grayscale()
-        self.level.zoom(1)
+        self.level.zoom(0.001)
 
     def __init__palitre__buttons__(self, buttons: Iterable[Button], data: Dict):
         for index, (color, button) in enumerate(zip(self.level.colors(), buttons)):

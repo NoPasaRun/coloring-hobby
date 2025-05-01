@@ -97,7 +97,7 @@ class ParticleBuilder:
     def build(self, frame: object, particles: int, color_depth: int, *args, pad: int = 1, **kwargs) -> Set:
         if self.__particles:
             raise Exception("Already initialized")
-        self.__size = int(math.sqrt((frame.width * frame.height) / particles))
+        self.__size = round(math.sqrt((frame.width * frame.height) / particles), 2)
 
         if self.remain_width:
             self.__row = math.ceil(frame.width / self.__size / pad)
@@ -114,22 +114,23 @@ class ParticleBuilder:
                 colors.add(
                     self.create_particle(frame, (x * pad, y * pad), color_depth, *args, **kwargs)
                 )
-        if self.remain_width and particles - area > 0 and not self.crop:
-            for x in range(particles - area):
-                colors.add(
-                    self.create_particle(
-                        frame, (x * pad, self.__column * pad), color_depth, *args, **kwargs
+        if not self.crop and particles - area > 0:
+            if self.remain_width:
+                for x in range(particles - area):
+                    colors.add(
+                        self.create_particle(
+                            frame, (x * pad, self.__column * pad), color_depth, *args, **kwargs
+                        )
                     )
-                )
-            self.__column += 1
-        elif self.remain_height and particles - area > 0 and not self.crop:
-            for y in range(particles - area):
-                colors.add(
-                    self.create_particle(
-                        frame, (self.__row * pad, y * pad), color_depth, *args, **kwargs
+                self.__column += 1
+            elif self.remain_height:
+                for y in range(particles - area):
+                    colors.add(
+                        self.create_particle(
+                            frame, (self.__row * pad, y * pad), color_depth, *args, **kwargs
+                        )
                     )
-                )
-            self.__row += 1
+                self.__row += 1
         colors.add(Color((0, 0, 0, 0), color_depth))
         return colors
 
