@@ -1,8 +1,8 @@
-from application import pg
+import pygame as pg
 from typing import Callable, List, Tuple
 
-from application.utils.enums import BezierFunctions
-from application.base import ResizableObject
+from utils.enums import BezierFunctions
+from base import ResizableObject
 
 
 def check_active(func: Callable):

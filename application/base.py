@@ -1,4 +1,4 @@
-from application import pg, Surface
+import pygame as pg
 
 import abc
 import os
@@ -7,7 +7,7 @@ from typing import Tuple
 
 
 class Object(abc.ABC):
-    def __init__(self, surface: Surface, path: Path, save_origin: bool = False):
+    def __init__(self, surface: pg.Surface, path: Path, save_origin: bool = False):
         if not os.path.exists(path):
             raise FileNotFoundError("Provided path is wrong")
         self.surface = surface
@@ -36,7 +36,9 @@ class Object(abc.ABC):
         else:
             origin_image = self.image
         coords = self.move_position(size)
-        self.__image = pg.transform.smoothscale(origin_image.convert_alpha(), size)
+        self.__image = pg.transform.scale(
+            origin_image.convert_alpha(), size
+        )
         if update_rect:
             self.__rect = self.image.get_rect()
             self.x, self.y = coords
@@ -79,6 +81,12 @@ class Object(abc.ABC):
     @property
     def width(self):
         return self.__rect.width
+
+    def get_width(self):
+        return self.width
+
+    def get_height(self):
+        return self.height
 
     @property
     def height(self):

@@ -1,11 +1,7 @@
 import math
-from pathlib import Path
 from typing import Type, List, Tuple, Set
 
-from application import pg
-
-from application.animation import Frame
-from application.base import ResizableObject
+import pygame as pg
 
 
 class Color:
@@ -27,7 +23,7 @@ class Color:
     @property
     def value(self) -> Tuple:
         return tuple(
-            val * (255 // (self.depth - 1)) for val in self.__value
+            math.ceil(val * 255 / (self.depth - 1)) for val in self.__value
         )
 
     def __hash__(self):
@@ -40,12 +36,12 @@ class Color:
 
 class ParticleBuilder:
 
-    def __init__(self, creation_class: Type[ResizableObject],
-                 remain_height: bool = False, remain_width: bool = False, limit: bool = False):
+    def __init__(self, creation_class: Type[object],
+                 remain_height: bool = False, remain_width: bool = False, crop: bool = False):
         self.__class = creation_class
         self.__particles = []
         self.__row, self.__column, self.__size = 0, 0, 0
-        self.remain_height, self.remain_width, self.limit = remain_height, remain_width, limit
+        self.remain_height, self.remain_width, self.crop = remain_height, remain_width, crop
 
     @property
     def row(self) -> int:
@@ -60,11 +56,11 @@ class ParticleBuilder:
         return self.__size
 
     @property
-    def particles(self) -> List[ResizableObject]:
+    def particles(self) -> List[object]:
         return self.__particles
 
     @property
-    def first(self) -> ResizableObject:
+    def first(self) -> object:
         if self.built:
             return self.__particles[0]
         raise Exception("Not initialized")
@@ -74,13 +70,13 @@ class ParticleBuilder:
         return bool(self.__particles)
 
     @staticmethod
-    def change_color(object: ResizableObject):
+    def change_color(object: object):
         def wrapper(data,  *args, **kwargs):
             object.fill_color = data
             object.image.fill(data)
         return wrapper
 
-    def create_particle(self, frame: Frame, coords: Tuple[int, int], color_depth: int, *args, **kwargs) -> Color:
+    def create_particle(self, frame: object, coords: Tuple[int, int], color_depth: int, *args, **kwargs) -> Color:
         pos = (coords[0] * self.__size, coords[1] * self.__size)
         color = pg.transform.average_color(
             frame.image, (*pos, self.__size, self.__size)
@@ -98,13 +94,17 @@ class ParticleBuilder:
         self.__particles.append(square)
         return color_data
 
-    def build(self, frame: Frame, particles: int, color_depth: int, *args, pad: int = 1, **kwargs) -> Set:
+    def build(self, frame: object, particles: int, color_depth: int, *args, pad: int = 1, **kwargs) -> Set:
         if self.__particles:
             raise Exception("Already initialized")
         self.__size = int(math.sqrt((frame.width * frame.height) / particles))
 
-        self.__row = math.ceil(frame.width / self.__size) if self.remain_height else frame.width // self.__size
-        self.__column = math.ceil(frame.height / self.__size) if self.remain_width else frame.height // self.__size
+        if self.remain_width:
+            self.__row = math.ceil(frame.width / self.__size / pad)
+            self.__column = particles // self.__row
+        else:
+            self.__column = math.ceil(frame.height / self.__size / pad)
+            self.__row = particles // self.__column
 
         area = self.column * self.row
 
@@ -114,24 +114,34 @@ class ParticleBuilder:
                 colors.add(
                     self.create_particle(frame, (x * pad, y * pad), color_depth, *args, **kwargs)
                 )
-        for x in range(particles - area):
-            colors.add(
-                self.create_particle(
-                    frame, (pad, x * pad), color_depth, *args, **kwargs
+        if self.remain_width and particles - area > 0 and not self.crop:
+            for x in range(particles - area):
+                colors.add(
+                    self.create_particle(
+                        frame, (x * pad, self.__column * pad), color_depth, *args, **kwargs
+                    )
                 )
-            )
-            self.__row += int(not x)
+            self.__column += 1
+        elif self.remain_height and particles - area > 0 and not self.crop:
+            for y in range(particles - area):
+                colors.add(
+                    self.create_particle(
+                        frame, (self.__row * pad, y * pad), color_depth, *args, **kwargs
+                    )
+                )
+            self.__row += 1
         colors.add(Color((0, 0, 0, 0), color_depth))
-        if self.limit:
-            self.__particles = self.__particles[:particles]
         return colors
 
     def rebuild(self, new_size: Tuple):
         for y in range(self.__column):
             for x in range(self.__row):
+                if y * self.__row + x == len(self.particles) - 1:
+                    break
                 square = self.__particles[y * self.__row + x]
                 square.resize_image(new_size)
                 square.margin_x = square.width * x
                 square.margin_y = square.height * y
-                square.fill_color = square.data
-                square.text = ""
+            else:
+                continue
+            break

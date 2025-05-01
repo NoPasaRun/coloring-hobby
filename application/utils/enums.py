@@ -12,3 +12,4 @@ class BezierFunctions(Enum):
 class States(Enum):
     menu: int = 0
     level: int = 1
+    settings: int = 2
